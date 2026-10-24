@@ -27,9 +27,6 @@ No other runtime dependencies — ask before adding one.
 - Small commits with clear messages. Push to `main` deploys to production.
 - UI is portrait-phone-first: test at ~380px wide. Tap targets ≥ 44px.
 
-## Roadmap (rough order)
-1. Status effects (vulnerable, weak, poison) + player strength cards
-2. Relics
-3. Branching map (fights, elites, rest sites, shop)
-4. Card upgrades
-5. More characters
+## Tasks
+`TASKS.md` is the task list. Work the top item under **Up next** unless told otherwise,
+and move it to **Done** (with the date) in the same commit that finishes it.
