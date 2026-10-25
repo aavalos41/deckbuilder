@@ -8,19 +8,24 @@ Move finished tasks to **Done** with the date. Add new ideas to **Backlog**.
 ### 1. Status effects: Vulnerable, Weak, Poison
 Statuses that stack on both player and enemies.
 
-- **Vulnerable (n):** takes 50% more attack damage. Loses 1 stack at end of the owner's turn.
-- **Weak (n):** deals 25% less attack damage. Loses 1 stack at end of the owner's turn.
+- **Vulnerable (n):** takes 50% more attack damage.
+- **Weak (n):** deals 25% less attack damage.
+- **Vulnerable/Weak duration:** lose 1 stack at the start of the *opponent's* turn
+  (on an enemy → ticks at player turn start; on the player → ticks at enemy turn start).
+  So n = number of the applier's turns it lasts, including the current one. No "just applied" flag needed.
 - **Poison (n):** at start of the owner's turn, lose n HP (ignores block), then poison drops by 1.
 
 Implementation notes:
-- `types.ts`: add `statuses: { vulnerable: number; weak: number; poison: number }` to `Combatant`.
-  Bump `RunState.version` to 2 (and in `save.ts`).
+- `types.ts`: add `statuses: { vulnerable: number; weak: number; poison: number }` and `strength: number`
+  (default 0, used by task 3) to `Combatant`. Bump `RunState.version` to 2 (and in `save.ts`).
 - Add an `applyStatus` effect: `{ type: 'applyStatus'; status: StatusId; amount: number; target: 'enemy' | 'self' }`.
 - `combat.ts`: one damage-calc function used by both player and enemy attacks
   (strength → weak → vulnerable, round down). Tick statuses at the right turn boundaries.
 - Enemy intents: allow enemies to apply statuses (e.g. intent `{ type: 'debuff', status, amount }`).
 - UI: show status chips under each HP bar (e.g. `Vuln 2`, `Weak 1`, `Poison 4`), tappable/long-press for a one-line explanation.
 - Tests: damage maths with each status, poison tick + decay, durations decrement correctly.
+  Specifically: enemy-applied Weak 1 affects exactly one player turn; player-applied Vulnerable 2
+  affects exactly two player turns.
 
 ### 2. Cards that use statuses
 Add ~6 cards to the reward pool, e.g.:
