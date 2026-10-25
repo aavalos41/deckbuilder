@@ -5,28 +5,6 @@ Move finished tasks to **Done** with the date. Add new ideas to **Backlog**.
 
 ## Up next
 
-### 1. Status effects: Vulnerable, Weak, Poison
-Statuses that stack on both player and enemies.
-
-- **Vulnerable (n):** takes 50% more attack damage.
-- **Weak (n):** deals 25% less attack damage.
-- **Vulnerable/Weak duration:** lose 1 stack at the start of the *opponent's* turn
-  (on an enemy → ticks at player turn start; on the player → ticks at enemy turn start).
-  So n = number of the applier's turns it lasts, including the current one. No "just applied" flag needed.
-- **Poison (n):** at start of the owner's turn, lose n HP (ignores block), then poison drops by 1.
-
-Implementation notes:
-- `types.ts`: add `statuses: { vulnerable: number; weak: number; poison: number }` and `strength: number`
-  (default 0, used by task 3) to `Combatant`. Bump `RunState.version` to 2 (and in `save.ts`).
-- Add an `applyStatus` effect: `{ type: 'applyStatus'; status: StatusId; amount: number; target: 'enemy' | 'self' }`.
-- `combat.ts`: one damage-calc function used by both player and enemy attacks
-  (strength → weak → vulnerable, round down). Tick statuses at the right turn boundaries.
-- Enemy intents: allow enemies to apply statuses (e.g. intent `{ type: 'debuff', status, amount }`).
-- UI: show status chips under each HP bar (e.g. `Vuln 2`, `Weak 1`, `Poison 4`), tappable/long-press for a one-line explanation.
-- Tests: damage maths with each status, poison tick + decay, durations decrement correctly.
-  Specifically: enemy-applied Weak 1 affects exactly one player turn; player-applied Vulnerable 2
-  affects exactly two player turns.
-
 ### 2. Cards that use statuses
 Add ~6 cards to the reward pool, e.g.:
 - *Expose* (1): apply 2 Vulnerable.
@@ -76,4 +54,8 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
 - Play Store wrapper (Capacitor or TWA)
 
 ## Done
+- 2026-10-25 — Status effects: Vulnerable, Weak, Poison on player and enemies. `applyStatus` card effect,
+  `debuff` enemy intent, shared `attackDamage` (strength → weak → vulnerable, round down), tappable status chips.
+  Timing: Vuln/Weak lose 1 stack at end of round (after the enemy acts); stacks an enemy applied that round
+  skip their first tick, so n = n turns where it matters for either side. Poison ticks at start of owner's turn.
 - 2026-10-24 — Initial game: combat engine, 12 cards, 6 enemies, 5 fights + boss, rewards, saves, PWA, deployed.

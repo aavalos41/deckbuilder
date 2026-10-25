@@ -8,6 +8,7 @@ import { loadRun, saveRun } from '../engine/save';
 import type { RunState } from '../engine/types';
 import { HpBar } from './Bar';
 import { Card } from './Card';
+import { Statuses } from './Statuses';
 
 export default function App() {
   const [run, setRun] = useState<RunState | null>(() => loadRun());
@@ -59,10 +60,10 @@ function Combat({ run, setRun }: { run: RunState; setRun: (r: RunState) => void 
       <section className="enemy">
         <div className="enemy__name">{enemyDef.name}{enemyDef.boss && ' 👑'}</div>
         <div className="enemy__intent">
-          {over ? (c.result === 'won' ? 'Defeated' : '—') : `Intends: ${describeIntent(intent, c.enemy.strength)}`}
+          {over ? (c.result === 'won' ? 'Defeated' : '—') : `Intends: ${describeIntent(intent, c.enemy, run.player)}`}
         </div>
         <HpBar hp={c.enemy.hp} maxHp={c.enemy.maxHp} block={c.enemy.block} />
-        {c.enemy.strength > 0 && <div className="muted small">Strength {c.enemy.strength}</div>}
+        <Statuses who={c.enemy} />
       </section>
 
       <section className="log" aria-live="polite">
@@ -77,6 +78,7 @@ function Combat({ run, setRun }: { run: RunState; setRun: (r: RunState) => void 
           <span className="muted small">Draw {c.drawPile.length} · Discard {c.discardPile.length}</span>
         </div>
         <HpBar hp={run.player.hp} maxHp={run.player.maxHp} block={run.player.block} />
+        <Statuses who={run.player} />
       </section>
 
       <section className="hand">

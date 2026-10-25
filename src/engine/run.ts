@@ -1,6 +1,6 @@
 import { REWARD_POOL, STARTER_DECK } from '../data/cards';
 import { BOSS_ID, ENCOUNTER_TIERS } from '../data/enemies';
-import { startCombat } from './combat';
+import { noStatuses, startCombat } from './combat';
 import { randomInt, shuffle } from './rng';
 import type { RunState } from './types';
 
@@ -19,12 +19,12 @@ export function newRun(seed: number): RunState {
 
   const deck = STARTER_DECK.map((defId, i) => ({ uid: `c${i}`, defId }));
   const run: RunState = {
-    version: 1,
+    version: 2,
     seed,
     rngState: rng,
     floor: 0,
     encounters,
-    player: { hp: PLAYER_MAX_HP, maxHp: PLAYER_MAX_HP, block: 0, strength: 0 },
+    player: { hp: PLAYER_MAX_HP, maxHp: PLAYER_MAX_HP, block: 0, strength: 0, statuses: noStatuses() },
     deck,
     nextUid: deck.length,
     phase: 'combat',

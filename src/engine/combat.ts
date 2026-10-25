@@ -1,13 +1,31 @@
 import { CARDS } from '../data/cards';
 import { ENEMIES } from '../data/enemies';
 import { shuffle } from './rng';
-import type { CardInstance, Combatant, Effect, EnemyState, Intent, RunState } from './types';
+import type { CardInstance, Combatant, Effect, EnemyState, Intent, RunState, StatusId, Statuses } from './types';
 
 export const HAND_SIZE = 5;
 export const MAX_HAND = 10;
 export const BASE_ENERGY = 3;
 
+export const VULNERABLE_MULT = 1.5;
+export const WEAK_MULT = 0.75;
+
+export function noStatuses(): Statuses {
+  return { vulnerable: 0, weak: 0, poison: 0 };
+}
+
 // ---------- helpers ----------
+
+/**
+ * Attack damage after modifiers: strength → weak → vulnerable, rounded down once at the end.
+ * Used for both player and enemy attacks, and for intent previews.
+ */
+export function attackDamage(base: number, attacker: Combatant, defender: Combatant): number {
+  let dmg = base + attacker.strength;
+  if (attacker.statuses.weak > 0) dmg *= WEAK_MULT;
+  if (defender.statuses.vulnerable > 0) dmg *= VULNERABLE_MULT;
+  return Math.max(0, Math.floor(dmg));
+}
 
 function dealDamage(target: Combatant, raw: number): number {
   const amount = Math.max(0, raw);
@@ -16,6 +34,20 @@ function dealDamage(target: Combatant, raw: number): number {
   const hpLoss = amount - absorbed;
   target.hp = Math.max(0, target.hp - hpLoss);
   return hpLoss;
+}
+
+/** Poison: lose HP equal to stacks (ignores block), then stacks drop by 1. Returns HP lost. */
+function tickPoison(target: Combatant): number {
+  const p = target.statuses.poison;
+  if (p <= 0) return 0;
+  const lost = Math.min(target.hp, p);
+  target.hp -= lost;
+  target.statuses.poison = p - 1;
+  return lost;
+}
+
+function decrement(s: Statuses, id: StatusId): void {
+  if (s[id] > 0) s[id]--;
 }
 
 /** Draws n cards, reshuffling the discard pile into the draw pile when needed. Mutates `run`. */
@@ -38,16 +70,25 @@ export function currentIntent(enemy: EnemyState): Intent {
   return def.pattern[enemy.patternIndex % def.pattern.length];
 }
 
-export function describeIntent(intent: Intent, strength = 0): string {
+export const STATUS_LABELS: Record<StatusId, string> = {
+  vulnerable: 'Vulnerable',
+  weak: 'Weak',
+  poison: 'Poison',
+};
+
+/** Describes an intent. Pass attacker/defender to preview real attack damage (strength, weak, vulnerable). */
+export function describeIntent(intent: Intent, attacker?: Combatant, defender?: Combatant): string {
   switch (intent.type) {
     case 'attack': {
-      const dmg = intent.amount + strength;
+      const dmg = attacker && defender ? attackDamage(intent.amount, attacker, defender) : intent.amount;
       return intent.times && intent.times > 1 ? `Attack ${dmg}×${intent.times}` : `Attack ${dmg}`;
     }
     case 'block':
       return `Block ${intent.amount}`;
     case 'buff':
       return `Strength +${intent.strength}`;
+    case 'debuff':
+      return `Apply ${STATUS_LABELS[intent.status]} ${intent.amount}`;
   }
 }
 
@@ -65,7 +106,7 @@ function applyEffect(run: RunState, effect: Effect): void {
     case 'damage': {
       const times = effect.times ?? 1;
       for (let i = 0; i < times && c.enemy.hp > 0; i++) {
-        const lost = dealDamage(c.enemy, effect.amount + run.player.strength);
+        const lost = dealDamage(c.enemy, attackDamage(effect.amount, run.player, c.enemy));
         c.log.push(`You hit for ${lost}.`);
       }
       break;
@@ -82,6 +123,13 @@ function applyEffect(run: RunState, effect: Effect): void {
     case 'heal':
       run.player.hp = Math.min(run.player.maxHp, run.player.hp + effect.amount);
       break;
+    case 'applyStatus': {
+      const target = effect.target === 'enemy' ? c.enemy : run.player;
+      target.statuses[effect.status] += effect.amount;
+      const who = effect.target === 'enemy' ? ENEMIES[c.enemy.defId].name : 'You';
+      c.log.push(`${who}: ${STATUS_LABELS[effect.status]} +${effect.amount}.`);
+      break;
+    }
   }
 }
 
@@ -94,6 +142,7 @@ export function startCombat(prev: RunState, enemyId: string): RunState {
   run.rngState = rng;
   run.player.block = 0;
   run.player.strength = 0;
+  run.player.statuses = noStatuses();
   run.combat = {
     turn: 1,
     energy: BASE_ENERGY,
@@ -101,7 +150,10 @@ export function startCombat(prev: RunState, enemyId: string): RunState {
     drawPile,
     hand: [],
     discardPile: [],
-    enemy: { defId: enemyId, hp: def.maxHp, maxHp: def.maxHp, block: 0, strength: 0, patternIndex: 0 },
+    enemy: {
+      defId: enemyId, hp: def.maxHp, maxHp: def.maxHp, block: 0, strength: 0,
+      statuses: noStatuses(), patternIndex: 0,
+    },
     log: [`A ${def.name} appears!`],
     result: 'ongoing',
   };
@@ -146,7 +198,7 @@ function enemyAct(run: RunState): void {
     case 'attack': {
       const times = intent.times ?? 1;
       for (let i = 0; i < times && run.player.hp > 0; i++) {
-        const lost = dealDamage(run.player, intent.amount + e.strength);
+        const lost = dealDamage(run.player, attackDamage(intent.amount, e, run.player));
         c.log.push(`${name} hits you for ${lost}.`);
       }
       break;
@@ -159,28 +211,61 @@ function enemyAct(run: RunState): void {
       e.strength += intent.strength;
       c.log.push(`${name} gains ${intent.strength} strength.`);
       break;
+    case 'debuff':
+      run.player.statuses[intent.status] += intent.amount;
+      c.log.push(`${name} applies ${STATUS_LABELS[intent.status]} ${intent.amount}.`);
+      break;
   }
   e.patternIndex++;
 }
 
+/**
+ * Turn order:
+ *   enemy turn: block expires → poison ticks → acts
+ *   end of round: Vulnerable/Weak lose 1 stack on both sides, except stacks the enemy
+ *     applied to the player this round (they skip their first tick, so "1" always lasts
+ *     one turn where it matters)
+ *   player turn: block expires → poison ticks → energy + draw
+ */
 export function endTurn(prev: RunState): RunState {
   const run = structuredClone(prev);
   const c = run.combat;
   if (!c || c.result !== 'ongoing') return prev;
+  const p = run.player;
+  const e = c.enemy;
+  const name = ENEMIES[e.defId].name;
 
   // Discard hand
   c.discardPile.push(...c.hand);
   c.hand = [];
 
-  // Enemy turn: their block expires, then they act
-  c.enemy.block = 0;
+  // Enemy turn
+  e.block = 0;
+  const enemyPoison = tickPoison(e);
+  if (enemyPoison > 0) c.log.push(`${name} loses ${enemyPoison} to poison.`);
+  checkResult(run);
+  if (c.result !== 'ongoing') return run;
+
+  const hadVuln = p.statuses.vulnerable > 0;
+  const hadWeak = p.statuses.weak > 0;
   enemyAct(run);
   checkResult(run);
   if (c.result !== 'ongoing') return run;
 
+  // End of round
+  decrement(e.statuses, 'vulnerable');
+  decrement(e.statuses, 'weak');
+  if (hadVuln) decrement(p.statuses, 'vulnerable');
+  if (hadWeak) decrement(p.statuses, 'weak');
+
   // New player turn
   c.turn++;
-  run.player.block = 0;
+  p.block = 0;
+  const playerPoison = tickPoison(p);
+  if (playerPoison > 0) c.log.push(`You lose ${playerPoison} to poison.`);
+  checkResult(run);
+  if (c.result !== 'ongoing') return run;
+
   c.energy = c.maxEnergy;
   drawCards(run, HAND_SIZE);
   return run;

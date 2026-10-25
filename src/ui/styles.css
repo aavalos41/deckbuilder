@@ -118,3 +118,25 @@ h1, h2 { margin: 0 0 8px; font-weight: 600; }
 .card__text { font-size: 12px; margin-top: 4px; }
 
 .endturn { width: 100%; }
+
+.statuses { margin-top: 8px; }
+.statuses__row { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 10px;
+  min-height: 30px;
+  position: relative;
+  cursor: pointer;
+}
+/* Extend the tap area to 44px without making the chip look bigger. */
+.chip::after { content: ''; position: absolute; inset: -7px -2px; }
+.chip--buff { border-color: var(--accent); color: var(--accent); }
+.chip--debuff { border-color: var(--attack); color: var(--attack); }
+.chip--open { background: var(--line); }
+.statuses__explain { margin-top: 6px; color: var(--muted); }

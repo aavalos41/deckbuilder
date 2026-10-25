@@ -1,6 +1,6 @@
 import type { RunState } from './types';
 
-const KEY = 'deckbuilder.run.v1';
+const KEY = 'deckbuilder.run.v2';
 
 export function saveRun(run: RunState | null): void {
   try {
@@ -16,7 +16,7 @@ export function loadRun(): RunState | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const run = JSON.parse(raw) as RunState;
-    return run.version === 1 ? run : null;
+    return run.version === 2 ? run : null;
   } catch {
     return null;
   }
