@@ -46,6 +46,37 @@ export const CARDS: Record<string, CardDef> = {
     id: 'surge', name: 'Surge', cost: 0, type: 'skill', rarity: 'uncommon',
     text: 'Gain 2 energy.', effects: [{ type: 'energy', amount: 2 }],
   },
+  expose: {
+    id: 'expose', name: 'Expose', cost: 1, type: 'skill', rarity: 'common',
+    text: 'Apply 2 Vulnerable.',
+    effects: [{ type: 'applyStatus', status: 'vulnerable', amount: 2, target: 'enemy' }],
+  },
+  cripple: {
+    id: 'cripple', name: 'Cripple', cost: 1, type: 'attack', rarity: 'common',
+    text: 'Deal 4 damage. Apply 1 Weak.',
+    effects: [{ type: 'damage', amount: 4 }, { type: 'applyStatus', status: 'weak', amount: 1, target: 'enemy' }],
+  },
+  toxin: {
+    id: 'toxin', name: 'Toxin', cost: 1, type: 'skill', rarity: 'common',
+    text: 'Apply 4 Poison.',
+    effects: [{ type: 'applyStatus', status: 'poison', amount: 4, target: 'enemy' }],
+  },
+  venomStrike: {
+    id: 'venomStrike', name: 'Venom Strike', cost: 1, type: 'attack', rarity: 'uncommon',
+    text: 'Deal 5 damage. Apply 2 Poison.',
+    effects: [{ type: 'damage', amount: 5 }, { type: 'applyStatus', status: 'poison', amount: 2, target: 'enemy' }],
+  },
+  brace: {
+    id: 'brace', name: 'Brace', cost: 1, type: 'skill', rarity: 'common',
+    text: 'Gain 6 block. Remove your Weak.',
+    effects: [{ type: 'block', amount: 6 }, { type: 'removeStatus', status: 'weak', target: 'self' }],
+  },
+  // Cost 2 / rare because there's no Exhaust yet, so it can be replayed every deck cycle.
+  catalyst: {
+    id: 'catalyst', name: 'Catalyst', cost: 2, type: 'skill', rarity: 'rare',
+    text: "Double the enemy's Poison.",
+    effects: [{ type: 'multiplyStatus', status: 'poison', factor: 2, target: 'enemy' }],
+  },
   cleave: {
     id: 'cleave', name: 'Cleave', cost: 3, type: 'attack', rarity: 'rare',
     text: 'Deal 26 damage.', effects: [{ type: 'damage', amount: 26 }],

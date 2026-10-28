@@ -150,3 +150,43 @@ describe('poison', () => {
     expect(run.combat!.enemy.statuses).toEqual(noStatuses());
   });
 });
+
+describe('status cards', () => {
+  const withEnergy = (run: RunState) => { run.combat!.energy = 10; return run; };
+
+  it('Catalyst doubles enemy Poison, and does nothing at 0', () => {
+    let run = withEnergy(setup([{ type: 'block', amount: 0 }], ['catalyst']));
+    run = playCard(run, 'h0');
+    expect(run.combat!.enemy.statuses.poison).toBe(0);
+    run.combat!.enemy.statuses.poison = 5;
+    run = playCard(give(withEnergy(run), 'catalyst'), 'g');
+    expect(run.combat!.enemy.statuses.poison).toBe(10);
+  });
+
+  it('Brace gives block and removes all your Weak', () => {
+    let run = withEnergy(setup([{ type: 'block', amount: 0 }], ['brace']));
+    run.player.statuses.weak = 3;
+    run = playCard(run, 'h0');
+    expect(run.player.block).toBe(6);
+    expect(run.player.statuses.weak).toBe(0);
+  });
+
+  it('Venom Strike deals damage and applies Poison', () => {
+    let run = withEnergy(setup([{ type: 'block', amount: 0 }], ['venomStrike']));
+    run = playCard(run, 'h0');
+    expect(run.combat!.enemy.hp).toBe(495);
+    expect(run.combat!.enemy.statuses.poison).toBe(2);
+  });
+
+  it('Cripple applies Weak that reduces the next enemy attack', () => {
+    let run = withEnergy(setup([{ type: 'attack', amount: 8 }], ['cripple']));
+    run = playCard(run, 'h0');
+    run = endTurn(run);
+    expect(run.player.hp).toBe(500 - 6); // floor(8 * 0.75)
+  });
+
+  it('new enemies use debuff intents', () => {
+    expect(ENEMIES.toad.pattern.some((i) => i.type === 'debuff' && i.status === 'weak')).toBe(true);
+    expect(ENEMIES.archer.pattern.some((i) => i.type === 'debuff' && i.status === 'vulnerable')).toBe(true);
+  });
+});

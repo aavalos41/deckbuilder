@@ -9,7 +9,11 @@ export type Effect =
   | { type: 'draw'; amount: number }
   | { type: 'energy'; amount: number }
   | { type: 'heal'; amount: number }
-  | { type: 'applyStatus'; status: StatusId; amount: number; target: 'enemy' | 'self' };
+  | { type: 'applyStatus'; status: StatusId; amount: number; target: 'enemy' | 'self' }
+  /** Multiply existing stacks (e.g. factor 2 doubles Poison). No effect at 0 stacks. */
+  | { type: 'multiplyStatus'; status: StatusId; factor: number; target: 'enemy' | 'self' }
+  /** Remove all stacks of a status. */
+  | { type: 'removeStatus'; status: StatusId; target: 'enemy' | 'self' };
 
 export type CardType = 'attack' | 'skill';
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare';

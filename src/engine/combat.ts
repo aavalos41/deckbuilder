@@ -130,6 +130,23 @@ function applyEffect(run: RunState, effect: Effect): void {
       c.log.push(`${who}: ${STATUS_LABELS[effect.status]} +${effect.amount}.`);
       break;
     }
+    case 'multiplyStatus': {
+      const target = effect.target === 'enemy' ? c.enemy : run.player;
+      const before = target.statuses[effect.status];
+      target.statuses[effect.status] = before * effect.factor;
+      const who = effect.target === 'enemy' ? ENEMIES[c.enemy.defId].name : 'You';
+      c.log.push(`${who}: ${STATUS_LABELS[effect.status]} ${before} → ${target.statuses[effect.status]}.`);
+      break;
+    }
+    case 'removeStatus': {
+      const target = effect.target === 'enemy' ? c.enemy : run.player;
+      if (target.statuses[effect.status] > 0) {
+        target.statuses[effect.status] = 0;
+        const who = effect.target === 'enemy' ? ENEMIES[c.enemy.defId].name : 'You';
+        c.log.push(`${who}: ${STATUS_LABELS[effect.status]} removed.`);
+      }
+      break;
+    }
   }
 }
 

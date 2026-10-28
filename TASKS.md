@@ -5,16 +5,6 @@ Move finished tasks to **Done** with the date. Add new ideas to **Backlog**.
 
 ## Up next
 
-### 2. Cards that use statuses
-Add ~6 cards to the reward pool, e.g.:
-- *Expose* (1): apply 2 Vulnerable.
-- *Cripple* (1): deal 4, apply 1 Weak.
-- *Toxin* (1): apply 4 Poison.
-- *Venom Strike* (1): deal 5, apply 2 Poison.
-- *Catalyst* (1): double the enemy's Poison.
-- *Brace* (1): gain 6 block, remove your Weak.
-Plus one enemy that applies Weak and one that applies Vulnerable.
-
 ### 3. Player strength cards
 - *Inflame* (1): gain 2 Strength for this combat.
 - *Flex* (0): gain 2 Strength this turn, lose it at end of turn (needs a temporary-strength mechanic).
@@ -54,6 +44,9 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
 - Play Store wrapper (Capacitor or TWA)
 
 ## Done
+- 2026-10-28 — Status cards: Expose, Cripple, Toxin, Venom Strike, Brace, Catalyst (cost 2 / rare until Exhaust
+  exists). New effects `multiplyStatus` and `removeStatus`. Enemies: Spore Toad (applies Weak, tiers 1–2),
+  Hex Archer (applies Vulnerable, tiers 3–5).
 - 2026-10-25 — Status effects: Vulnerable, Weak, Poison on player and enemies. `applyStatus` card effect,
   `debuff` enemy intent, shared `attackDamage` (strength → weak → vulnerable, round down), tappable status chips.
   Timing: Vuln/Weak lose 1 stack at end of round (after the enemy acts); stacks an enemy applied that round

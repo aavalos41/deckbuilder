@@ -28,7 +28,9 @@ describe('run', () => {
     run.combat!.hand = [{ uid: 'x', defId: 'strike' }];
     const hp = run.combat!.enemy.hp;
     run = playCard(run, 'x');
-    expect(run.combat!.enemy.hp).toBe(hp - CARDS.strike.effects[0].amount!);
+    const strike = CARDS.strike.effects[0];
+    if (strike.type !== 'damage') throw new Error('Strike should deal damage');
+    expect(run.combat!.enemy.hp).toBe(hp - strike.amount);
     expect(run.combat!.energy).toBe(2);
     expect(run.combat!.discardPile.map((c) => c.uid)).toContain('x');
   });
