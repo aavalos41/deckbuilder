@@ -140,3 +140,9 @@ h1, h2 { margin: 0 0 8px; font-weight: 600; }
 .chip--debuff { border-color: var(--attack); color: var(--attack); }
 .chip--open { background: var(--line); }
 .statuses__explain { margin-top: 6px; color: var(--muted); }
+
+/* Relics */
+.chip--relic { border-color: var(--muted); color: var(--text); }
+.relic-choice { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 340px; margin: 12px 0; }
+.relic-option { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 14px 16px; min-height: 64px; }
+.relic-option__name { font-weight: 600; }

@@ -43,6 +43,22 @@ export type Intent =
   | { type: 'buff'; strength: number }
   | { type: 'debuff'; status: StatusId; amount: number };
 
+export type RelicHook = 'combatStart' | 'turnStart' | 'cardPlayed' | 'combatEnd';
+
+export interface RelicTrigger {
+  on: RelicHook;
+  /** cardPlayed only: limit to this card type. */
+  cardType?: CardType;
+  effects: Effect[];
+}
+
+export interface RelicDef {
+  id: string;
+  name: string;
+  text: string;
+  triggers: RelicTrigger[];
+}
+
 export interface EnemyDef {
   id: string;
   name: string;
@@ -77,10 +93,10 @@ export interface CombatState {
   result: 'ongoing' | 'won' | 'lost';
 }
 
-export type RunPhase = 'combat' | 'reward' | 'victory' | 'defeat';
+export type RunPhase = 'combat' | 'relic' | 'reward' | 'victory' | 'defeat';
 
 export interface RunState {
-  version: 3;
+  version: 4;
   seed: number;
   rngState: number;
   floor: number; // 0-based index into the run's encounter list
@@ -91,4 +107,6 @@ export interface RunState {
   phase: RunPhase;
   combat: CombatState | null;
   rewardOptions: string[]; // card def ids
+  relics: string[]; // relic def ids, in pickup order
+  relicOptions: string[]; // relic def ids offered on a relic floor
 }

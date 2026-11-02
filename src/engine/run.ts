@@ -1,7 +1,8 @@
 import { RARITY_WEIGHTS, REWARD_POOL, STARTER_DECK, type RewardRarity } from '../data/cards';
 import { BOSS_ID, ENCOUNTER_TIERS } from '../data/enemies';
-import { noStatuses, startCombat } from './combat';
-import { randomInt, weightedIndex } from './rng';
+import { RELIC_CHOICES, RELIC_FLOORS, RELICS } from '../data/relics';
+import { fireRelics, noStatuses, startCombat } from './combat';
+import { randomInt, shuffle, weightedIndex } from './rng';
 import type { RunState } from './types';
 
 export const PLAYER_MAX_HP = 70;
@@ -19,7 +20,7 @@ export function newRun(seed: number): RunState {
 
   const deck = STARTER_DECK.map((defId, i) => ({ uid: `c${i}`, defId }));
   const run: RunState = {
-    version: 3,
+    version: 4,
     seed,
     rngState: rng,
     floor: 0,
@@ -30,6 +31,8 @@ export function newRun(seed: number): RunState {
     phase: 'combat',
     combat: null,
     rewardOptions: [],
+    relics: [],
+    relicOptions: [],
   };
   return startCombat(run, encounters[0]);
 }
@@ -68,11 +71,31 @@ export function resolveCombat(prev: RunState): RunState {
     run.phase = 'defeat';
     return run;
   }
+  fireRelics(run, 'combatEnd');
   if (run.floor >= run.encounters.length - 1) {
     run.phase = 'victory';
     return run;
   }
   [run.rewardOptions, run.rngState] = rollRewards(run.rngState);
+  run.phase = 'reward';
+  if (RELIC_FLOORS.includes(run.floor)) {
+    const unowned = Object.keys(RELICS).filter((id) => !run.relics.includes(id));
+    if (unowned.length >= RELIC_CHOICES) {
+      const [shuffled, rng] = shuffle(unowned, run.rngState);
+      run.rngState = rng;
+      run.relicOptions = shuffled.slice(0, RELIC_CHOICES);
+      run.phase = 'relic';
+    }
+  }
+  return run;
+}
+
+/** Take one of the offered relics, then go on to the card reward. */
+export function chooseRelic(prev: RunState, relicId: string): RunState {
+  if (prev.phase !== 'relic' || !prev.relicOptions.includes(relicId)) return prev;
+  const run = structuredClone(prev);
+  run.relics.push(relicId);
+  run.relicOptions = [];
   run.phase = 'reward';
   return run;
 }

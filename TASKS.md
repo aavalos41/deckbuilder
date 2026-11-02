@@ -5,32 +5,6 @@ Move finished tasks to **Done** with the date. Add new ideas to **Backlog**.
 
 ## Up next
 
-### 4. Relics
-Passive items as data, reusing card `Effect`s. Pick 1 of 2 after fights 2 and 4 (floor index 1 and 3) until the map exists.
-- **Data:** new `src/data/relics.ts` with `RELICS` and `RELIC_FLOORS = [1, 3]`.
-  `RelicDef { id, name, text, triggers: { on: RelicHook; cardType?: CardType; effects: Effect[] }[] }`,
-  `RelicHook = 'combatStart' | 'turnStart' | 'cardPlayed' | 'combatEnd'`.
-- **Engine:** `fireRelics(run, hook, card?)` in `combat.ts` runs matching triggers through `applyEffect`.
-  - `combatStart`: once, after the opening hand is drawn.
-  - `turnStart`: every player turn from turn 2, after the draw.
-  - `cardPlayed`: after the card's own effects; `cardType` filters it.
-  - `combatEnd`: on a win only, in `resolveCombat`.
-- **State:** `RunState.relics: string[]`, `relicOptions: string[]`, new phase `'relic'` (comes before `'reward'` on relic floors).
-  Offer 2 distinct relics you don't own, seeded RNG. Skip the phase if fewer than 2 are left. Bump save version to 4.
-- **Starter relics:**
-  - Whetstone: combat start, +1 Strength.
-  - Iron Ring: combat start, 8 block.
-  - Lantern: combat start, +1 energy.
-  - Ember Heart: combat end, heal 6.
-  - Spiked Glove: when you play an attack, deal 1 damage. It's a real hit, so Strength and Vulnerable apply; watch it with Inflame.
-- **UI:** relic choice screen (2 big buttons, name + text). Relic chips row under the player HP, tap to show text (same pattern as `Statuses.tsx`).
-- **Test:**
-  - Each hook fires at the right time.
-  - `cardType` filter works.
-  - Relic phase only on floors 1 and 3, 2 distinct unowned options, same seed gives same options.
-  - Choosing adds the relic and moves to the card reward.
-- **Later, not now:** `damageTaken` hook (thorns), counter relics ("every 3rd attack"), relic rarity, shop.
-
 ### 5. Branching map
 Replace the linear run with a small node map: fight, elite, rest (heal 30% or upgrade a card), shop, boss.
 
@@ -62,6 +36,10 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
 - Play Store wrapper (Capacitor or TWA)
 
 ## Done
+- 2026-11-02 — Relics: data in `src/data/relics.ts` (Whetstone, Iron Ring, Lantern, Ember Heart, Spiked Glove),
+  hooks combatStart / turnStart / cardPlayed / combatEnd via `fireRelics`. Pick 1 of 2 after floors 1 and 3
+  (`RELIC_FLOORS`), relic chips under player HP. Save version 4.
+  Later: `damageTaken` hook, counter relics, relic rarity, shop.
 - 2026-11-02 — Rarity-weighted rewards: each slot rolls common 60 / uncommon 30 / rare 10 (`RARITY_WEIGHTS`
   in `cards.ts`), no duplicates, falls back to the most common rarity left. `weightedIndex` in `rng.ts`.
 - 2026-11-02 — Strength cards: Inflame (1, rare until Exhaust/powers exist) and Flex (0, common). New effect

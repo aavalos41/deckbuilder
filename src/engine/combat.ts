@@ -1,7 +1,8 @@
 import { CARDS } from '../data/cards';
 import { ENEMIES } from '../data/enemies';
+import { RELICS } from '../data/relics';
 import { shuffle } from './rng';
-import type { CardInstance, Combatant, Effect, EnemyState, Intent, RunState, StatusId, Statuses } from './types';
+import type { CardInstance, CardType, Combatant, Effect, RelicHook, EnemyState, Intent, RunState, StatusId, Statuses } from './types';
 
 export const HAND_SIZE = 5;
 export const MAX_HAND = 10;
@@ -156,6 +157,22 @@ function applyEffect(run: RunState, effect: Effect): void {
   }
 }
 
+/** Runs every owned relic trigger for this hook (in pickup order). Mutates `run`; needs an active combat. */
+export function fireRelics(run: RunState, hook: RelicHook, cardType?: CardType): void {
+  const c = run.combat;
+  if (!c) return;
+  for (const id of run.relics) {
+    const relic = RELICS[id];
+    if (!relic) continue;
+    for (const t of relic.triggers) {
+      if (t.on !== hook || (t.cardType && t.cardType !== cardType)) continue;
+      c.log.push(`✦ ${relic.name}`);
+      // No dead-enemy guard: damage already stops at 0 HP, and combatEnd fires after the kill.
+      for (const effect of t.effects) applyEffect(run, effect);
+    }
+  }
+}
+
 // ---------- public API (all pure: return a new RunState) ----------
 
 export function startCombat(prev: RunState, enemyId: string): RunState {
@@ -181,6 +198,7 @@ export function startCombat(prev: RunState, enemyId: string): RunState {
     result: 'ongoing',
   };
   drawCards(run, HAND_SIZE);
+  fireRelics(run, 'combatStart');
   return run;
 }
 
@@ -207,6 +225,7 @@ export function playCard(prev: RunState, uid: string): RunState {
     applyEffect(run, effect);
     if (c.enemy.hp <= 0) break;
   }
+  fireRelics(run, 'cardPlayed', def.type);
   c.discardPile.push(card);
   checkResult(run);
   return run;
@@ -299,5 +318,7 @@ export function endTurn(prev: RunState): RunState {
 
   c.energy = c.maxEnergy;
   drawCards(run, HAND_SIZE);
+  fireRelics(run, 'turnStart');
+  checkResult(run);
   return run;
 }

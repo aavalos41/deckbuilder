@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { CARDS } from '../data/cards';
 import { ENEMIES } from '../data/enemies';
+import { RELICS } from '../data/relics';
 import { canPlay, currentIntent, describeIntent, endTurn, playCard } from '../engine/combat';
 import { newSeed } from '../engine/rng';
-import { chooseReward, newRun, resolveCombat } from '../engine/run';
+import { chooseRelic, chooseReward, newRun, resolveCombat } from '../engine/run';
 import { loadRun, saveRun } from '../engine/save';
 import type { RunState } from '../engine/types';
 import { HpBar } from './Bar';
 import { Card } from './Card';
+import { Relics } from './Relics';
 import { Statuses } from './Statuses';
 
 export default function App() {
@@ -26,6 +28,9 @@ export default function App() {
   if (!run) return <Title onStart={() => setRun(newRun(newSeed()))} />;
   if (run.phase === 'victory' || run.phase === 'defeat') {
     return <End run={run} onRestart={() => setRun(null)} />;
+  }
+  if (run.phase === 'relic') {
+    return <RelicChoice run={run} onPick={(id) => setRun(chooseRelic(run, id))} />;
   }
   if (run.phase === 'reward') {
     return <Reward run={run} onPick={(id) => setRun(chooseReward(run, id))} />;
@@ -79,6 +84,7 @@ function Combat({ run, setRun }: { run: RunState; setRun: (r: RunState) => void 
         </div>
         <HpBar hp={run.player.hp} maxHp={run.player.maxHp} block={run.player.block} />
         <Statuses who={run.player} />
+        <Relics ids={run.relics} />
       </section>
 
       <section className="hand">
@@ -95,6 +101,23 @@ function Combat({ run, setRun }: { run: RunState; setRun: (r: RunState) => void 
       <button className="btn btn--primary endturn" onClick={() => setRun(endTurn(run))} disabled={over}>
         End turn
       </button>
+    </main>
+  );
+}
+
+function RelicChoice({ run, onPick }: { run: RunState; onPick: (id: string) => void }) {
+  return (
+    <main className="screen screen--center">
+      <h2>Victory!</h2>
+      <p className="muted">HP {run.player.hp}/{run.player.maxHp}. Take a relic:</p>
+      <div className="relic-choice">
+        {run.relicOptions.map((id) => (
+          <button key={id} className="btn relic-option" onClick={() => onPick(id)}>
+            <span className="relic-option__name">✦ {RELICS[id].name}</span>
+            <span className="small muted">{RELICS[id].text}</span>
+          </button>
+        ))}
+      </div>
     </main>
   );
 }
