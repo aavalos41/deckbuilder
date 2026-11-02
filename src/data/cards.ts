@@ -1,4 +1,4 @@
-import type { CardDef } from '../engine/types';
+import type { CardDef, Rarity } from '../engine/types';
 
 // Add new cards here. Effects are data, interpreted by engine/effects.ts.
 export const CARDS: Record<string, CardDef> = {
@@ -98,6 +98,13 @@ export const STARTER_DECK: string[] = [
   'focus',
 ];
 
-export const REWARD_POOL: string[] = Object.values(CARDS)
-  .filter((c) => c.rarity !== 'starter')
-  .map((c) => c.id);
+export type RewardRarity = Exclude<Rarity, 'starter'>;
+
+/** Chance of each rarity per reward slot. Relative weights, tune freely. */
+export const RARITY_WEIGHTS: Record<RewardRarity, number> = { common: 60, uncommon: 30, rare: 10 };
+
+/** Reward-eligible card ids, grouped by rarity. */
+export const REWARD_POOL: Record<RewardRarity, string[]> = { common: [], uncommon: [], rare: [] };
+for (const c of Object.values(CARDS)) {
+  if (c.rarity !== 'starter') REWARD_POOL[c.rarity].push(c.id);
+}

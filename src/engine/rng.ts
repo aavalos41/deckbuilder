@@ -12,6 +12,18 @@ export function randomInt(seed: number, maxExclusive: number): [number, number] 
   return [Math.floor(v * maxExclusive), next];
 }
 
+/** Picks an index with probability proportional to its weight. Weights must be >= 0 with a positive sum. */
+export function weightedIndex(weights: readonly number[], seed: number): [number, number] {
+  const total = weights.reduce((a, b) => a + b, 0);
+  const [v, next] = nextRandom(seed);
+  let roll = v * total;
+  for (let i = 0; i < weights.length; i++) {
+    roll -= weights[i];
+    if (roll < 0) return [i, next];
+  }
+  return [weights.length - 1, next];
+}
+
 export function shuffle<T>(items: readonly T[], seed: number): [T[], number] {
   const out = [...items];
   let s = seed;

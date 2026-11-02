@@ -5,17 +5,6 @@ Move finished tasks to **Done** with the date. Add new ideas to **Backlog**.
 
 ## Up next
 
-### 3b. Rarity-weighted rewards
-Reward picks currently ignore rarity, so rares (Catalyst, Cleave) show up as often as commons.
-- Each of the 3 options rolls a rarity: common 60 / uncommon 30 / rare 10, then a random card of that
-  rarity. No duplicates within one offer; if a rarity has no cards left, fall back to the next most common one.
-- Weights live as data (`RARITY_WEIGHTS` in `src/data/cards.ts`) so they're easy to tune later
-  (e.g. better odds after elites/boss).
-- Files: `src/data/cards.ts`, `src/engine/run.ts` (reward picking), maybe a `weightedPick` helper in
-  `src/engine/rng.ts`. Seeded RNG only.
-- Test: over ~1,000 seeded reward rolls, rares are roughly 10% and commons the majority; every offer has
-  3 distinct cards; same seed gives the same offer.
-
 ### 4. Relics
 Passive items. Start with ~5, one granted after the boss-of-act / elite (or every 2 fights until the map exists).
 Hook points: start of combat, start of turn, on card played, on damage taken.
@@ -51,6 +40,8 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
 - Play Store wrapper (Capacitor or TWA)
 
 ## Done
+- 2026-11-02 — Rarity-weighted rewards: each slot rolls common 60 / uncommon 30 / rare 10 (`RARITY_WEIGHTS`
+  in `cards.ts`), no duplicates, falls back to the most common rarity left. `weightedIndex` in `rng.ts`.
 - 2026-11-02 — Strength cards: Inflame (1, rare until Exhaust/powers exist) and Flex (0, common). New effect
   `gainStrength` (`temporary` flag) and `strengthDown` status that removes temp Strength at end of your turn.
   Save version bumped to 3.
