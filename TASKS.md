@@ -6,8 +6,30 @@ Move finished tasks to **Done** with the date. Add new ideas to **Backlog**.
 ## Up next
 
 ### 4. Relics
-Passive items. Start with ~5, one granted after the boss-of-act / elite (or every 2 fights until the map exists).
-Hook points: start of combat, start of turn, on card played, on damage taken.
+Passive items as data, reusing card `Effect`s. Pick 1 of 2 after fights 2 and 4 (floor index 1 and 3) until the map exists.
+- **Data:** new `src/data/relics.ts` with `RELICS` and `RELIC_FLOORS = [1, 3]`.
+  `RelicDef { id, name, text, triggers: { on: RelicHook; cardType?: CardType; effects: Effect[] }[] }`,
+  `RelicHook = 'combatStart' | 'turnStart' | 'cardPlayed' | 'combatEnd'`.
+- **Engine:** `fireRelics(run, hook, card?)` in `combat.ts` runs matching triggers through `applyEffect`.
+  - `combatStart`: once, after the opening hand is drawn.
+  - `turnStart`: every player turn from turn 2, after the draw.
+  - `cardPlayed`: after the card's own effects; `cardType` filters it.
+  - `combatEnd`: on a win only, in `resolveCombat`.
+- **State:** `RunState.relics: string[]`, `relicOptions: string[]`, new phase `'relic'` (comes before `'reward'` on relic floors).
+  Offer 2 distinct relics you don't own, seeded RNG. Skip the phase if fewer than 2 are left. Bump save version to 4.
+- **Starter relics:**
+  - Whetstone: combat start, +1 Strength.
+  - Iron Ring: combat start, 8 block.
+  - Lantern: combat start, +1 energy.
+  - Ember Heart: combat end, heal 6.
+  - Spiked Glove: when you play an attack, deal 1 damage. It's a real hit, so Strength and Vulnerable apply; watch it with Inflame.
+- **UI:** relic choice screen (2 big buttons, name + text). Relic chips row under the player HP, tap to show text (same pattern as `Statuses.tsx`).
+- **Test:**
+  - Each hook fires at the right time.
+  - `cardType` filter works.
+  - Relic phase only on floors 1 and 3, 2 distinct unowned options, same seed gives same options.
+  - Choosing adds the relic and moves to the card reward.
+- **Later, not now:** `damageTaken` hook (thorns), counter relics ("every 3rd attack"), relic rarity, shop.
 
 ### 5. Branching map
 Replace the linear run with a small node map: fight, elite, rest (heal 30% or upgrade a card), shop, boss.
@@ -21,7 +43,7 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
 ## Backlog
 - **Character selection: race + class.** Class defines the deck and its signature mechanic
   (e.g. Engineer: gadgets that stay in play; Warlock: cards that cost HP instead of energy).
-  Race is a small layer: a passive + 1–2 starter card swaps (e.g. Dwarf: +block on first turn; Elf: draw 1 extra on turn 1).
+  Race is a small layer: a starter relic (reuses the relic system) + 1–2 starter card swaps (e.g. Dwarf: +block on first turn; Elf: draw 1 extra on turn 1).
   Start with 2 races × 2 classes and keep races light so combos stay balanced.
   Needs: character select screen, starter deck per class, race modifiers applied at run start.
 - **Animation pass (functional, CSS-first).** Card flies to enemy when played, floating damage/block numbers,
