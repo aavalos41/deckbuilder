@@ -19,7 +19,7 @@ export function newRun(seed: number): RunState {
 
   const deck = STARTER_DECK.map((defId, i) => ({ uid: `c${i}`, defId }));
   const run: RunState = {
-    version: 2,
+    version: 3,
     seed,
     rngState: rng,
     floor: 0,

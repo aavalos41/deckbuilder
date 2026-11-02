@@ -11,7 +11,7 @@ export const VULNERABLE_MULT = 1.5;
 export const WEAK_MULT = 0.75;
 
 export function noStatuses(): Statuses {
-  return { vulnerable: 0, weak: 0, poison: 0 };
+  return { vulnerable: 0, weak: 0, poison: 0, strengthDown: 0 };
 }
 
 // ---------- helpers ----------
@@ -74,6 +74,7 @@ export const STATUS_LABELS: Record<StatusId, string> = {
   vulnerable: 'Vulnerable',
   weak: 'Weak',
   poison: 'Poison',
+  strengthDown: 'Strength Down',
 };
 
 /** Describes an intent. Pass attacker/defender to preview real attack damage (strength, weak, vulnerable). */
@@ -122,6 +123,11 @@ function applyEffect(run: RunState, effect: Effect): void {
       break;
     case 'heal':
       run.player.hp = Math.min(run.player.maxHp, run.player.hp + effect.amount);
+      break;
+    case 'gainStrength':
+      run.player.strength += effect.amount;
+      if (effect.temporary) run.player.statuses.strengthDown += effect.amount;
+      c.log.push(`You: Strength +${effect.amount}${effect.temporary ? ' this turn' : ''}.`);
       break;
     case 'applyStatus': {
       const target = effect.target === 'enemy' ? c.enemy : run.player;
@@ -238,6 +244,7 @@ function enemyAct(run: RunState): void {
 
 /**
  * Turn order:
+ *   end of player turn: temporary Strength (strengthDown) is lost
  *   enemy turn: block expires → poison ticks → acts
  *   end of round: Vulnerable/Weak lose 1 stack on both sides, except stacks the enemy
  *     applied to the player this round (they skip their first tick, so "1" always lasts
@@ -255,6 +262,13 @@ export function endTurn(prev: RunState): RunState {
   // Discard hand
   c.discardPile.push(...c.hand);
   c.hand = [];
+
+  // Temporary Strength wears off
+  if (p.statuses.strengthDown > 0) {
+    p.strength -= p.statuses.strengthDown;
+    c.log.push(`You lose ${p.statuses.strengthDown} Strength.`);
+    p.statuses.strengthDown = 0;
+  }
 
   // Enemy turn
   e.block = 0;

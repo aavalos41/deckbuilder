@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import type { Combatant } from '../engine/types';
 
-type ChipId = 'strength' | 'vulnerable' | 'weak' | 'poison';
+type ChipId = 'strength' | 'vulnerable' | 'weak' | 'poison' | 'strengthDown';
 
 const CHIPS: { id: ChipId; label: string; kind: 'buff' | 'debuff'; explain: (n: number) => string }[] = [
   { id: 'strength', label: 'Str', kind: 'buff', explain: (n) => `Strength ${n}: attacks deal ${n} more damage.` },
+  { id: 'strengthDown', label: 'Str↓', kind: 'debuff', explain: (n) => `Strength Down ${n}: loses ${n} Strength at the end of this turn.` },
   { id: 'vulnerable', label: 'Vuln', kind: 'debuff', explain: (n) => `Vulnerable ${n}: takes 50% more attack damage for ${n} more turn${n === 1 ? '' : 's'}.` },
   { id: 'weak', label: 'Weak', kind: 'debuff', explain: (n) => `Weak ${n}: deals 25% less attack damage for ${n} more turn${n === 1 ? '' : 's'}.` },
   { id: 'poison', label: 'Poison', kind: 'debuff', explain: (n) => `Poison ${n}: loses ${n} HP at the start of its turn (ignores block), then Poison drops by 1.` },

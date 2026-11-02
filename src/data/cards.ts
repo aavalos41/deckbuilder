@@ -77,6 +77,15 @@ export const CARDS: Record<string, CardDef> = {
     text: "Double the enemy's Poison.",
     effects: [{ type: 'multiplyStatus', status: 'poison', factor: 2, target: 'enemy' }],
   },
+  // Rare until Exhaust/powers exist: it can be replayed every deck cycle, so Strength keeps stacking.
+  inflame: {
+    id: 'inflame', name: 'Inflame', cost: 1, type: 'skill', rarity: 'rare',
+    text: 'Gain 2 Strength for this combat.', effects: [{ type: 'gainStrength', amount: 2 }],
+  },
+  flex: {
+    id: 'flex', name: 'Flex', cost: 0, type: 'skill', rarity: 'common',
+    text: 'Gain 2 Strength this turn.', effects: [{ type: 'gainStrength', amount: 2, temporary: true }],
+  },
   cleave: {
     id: 'cleave', name: 'Cleave', cost: 3, type: 'attack', rarity: 'rare',
     text: 'Deal 26 damage.', effects: [{ type: 'damage', amount: 26 }],

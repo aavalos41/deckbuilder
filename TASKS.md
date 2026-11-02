@@ -5,10 +5,6 @@ Move finished tasks to **Done** with the date. Add new ideas to **Backlog**.
 
 ## Up next
 
-### 3. Player strength cards
-- *Inflame* (1): gain 2 Strength for this combat.
-- *Flex* (0): gain 2 Strength this turn, lose it at end of turn (needs a temporary-strength mechanic).
-
 ### 3b. Rarity-weighted rewards
 Reward picks currently ignore rarity, so rares (Catalyst, Cleave) show up as often as commons.
 - Each of the 3 options rolls a rarity: common 60 / uncommon 30 / rare 10, then a random card of that
@@ -55,6 +51,9 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
 - Play Store wrapper (Capacitor or TWA)
 
 ## Done
+- 2026-11-02 — Strength cards: Inflame (1, rare until Exhaust/powers exist) and Flex (0, common). New effect
+  `gainStrength` (`temporary` flag) and `strengthDown` status that removes temp Strength at end of your turn.
+  Save version bumped to 3.
 - 2026-10-28 — Status cards: Expose, Cripple, Toxin, Venom Strike, Brace, Catalyst (cost 2 / rare until Exhaust
   exists). New effects `multiplyStatus` and `removeStatus`. Enemies: Spore Toad (applies Weak, tiers 1–2),
   Hex Archer (applies Vulnerable, tiers 3–5).

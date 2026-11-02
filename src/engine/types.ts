@@ -1,6 +1,7 @@
 // All game state is plain JSON-serialisable data. No classes, no functions.
 
-export type StatusId = 'vulnerable' | 'weak' | 'poison';
+/** strengthDown: lose this much Strength at the end of your turn (temporary Strength, e.g. Flex). */
+export type StatusId = 'vulnerable' | 'weak' | 'poison' | 'strengthDown';
 export type Statuses = Record<StatusId, number>;
 
 export type Effect =
@@ -9,6 +10,8 @@ export type Effect =
   | { type: 'draw'; amount: number }
   | { type: 'energy'; amount: number }
   | { type: 'heal'; amount: number }
+  /** Gain Strength for this combat. `temporary`: lose it again at the end of this turn. */
+  | { type: 'gainStrength'; amount: number; temporary?: boolean }
   | { type: 'applyStatus'; status: StatusId; amount: number; target: 'enemy' | 'self' }
   /** Multiply existing stacks (e.g. factor 2 doubles Poison). No effect at 0 stacks. */
   | { type: 'multiplyStatus'; status: StatusId; factor: number; target: 'enemy' | 'self' }
@@ -77,7 +80,7 @@ export interface CombatState {
 export type RunPhase = 'combat' | 'reward' | 'victory' | 'defeat';
 
 export interface RunState {
-  version: 2;
+  version: 3;
   seed: number;
   rngState: number;
   floor: number; // 0-based index into the run's encounter list
