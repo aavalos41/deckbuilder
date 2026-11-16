@@ -12,14 +12,23 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
 - **Core identity / twist.** The current base (3 energy, Strike/Defend, intents, Vulnerable/Weak/Poison,
   relics, branching map) is very close to Slay the Spire. Pick 1–2 signature mechanics that make this game
   its own *before* adding lots of content, and rename generic terms to fit a theme.
-- **Setting and tone.** Decide the world so races, classes, card and enemy names feel like one place.
+- **Setting and tone.** Leaning Nahua: the last night of the 52-year cycle, travel to light the New Fire
+  before the tzitzimimeh descend. Codex-style art, glyph icons, bar-and-dot counters. Levers: Class
+  (e.g. Warrior, Tlacuilo) + Patron (e.g. Eagle, Jaguar). Not final; content naming waits on loadouts.
 
 ## Backlog
-- **Character selection: race + class.** Class defines the deck and its signature mechanic
-  (e.g. Engineer: gadgets that stay in play; Warlock: cards that cost HP instead of energy).
-  Race is a small layer: a starter relic (reuses the relic system) + 1–2 starter card swaps (e.g. Dwarf: +block on first turn; Elf: draw 1 extra on turn 1).
-  Start with 2 races × 2 classes and keep races light so combos stay balanced.
-  Needs: character select screen, starter deck per class, race modifiers applied at run start.
+- **Loadout sources (Class + Patron).** Two levers per run, both plain data, merged generically so a
+  third lever (e.g. People) can be added later as data only. Replaces the old race + class idea.
+  - Data (`src/data/loadouts.ts`, new): `LoadoutSource` = `id`, `kind` (`'class' | 'patron'`, extendable),
+    `name`, `description`, `starterCards`, `cardPool`, `passive?` (a relic id; reuse relics, no new system).
+    Placeholder: 2 classes + 2 patrons built from existing cards. No theme names or art yet.
+  - Engine (`run.ts`, `types.ts`, `save.ts`): `buildRunLoadout(sourceIds)` replaces `STARTER_DECK` at run start,
+    merges starter cards, unions pools with a neutral pool (`REWARD_POOL`), grants passive relics. Rewards draw
+    only from the merged pool. Required kinds come from config; never hardcode 'class'/'patron'. Run state
+    stores chosen ids; bump save version.
+  - UI (`App.tsx`): text-first run-start picker, one list per kind with a short description.
+  - Tests: starter deck = class + patron cards; rewards stay inside merged pool; passive relic present at start;
+    a fixture with a third kind works with no engine change; save/load keeps sources.
 - **Animation pass (functional, CSS-first).** Card flies to enemy when played, floating damage/block numbers,
   hit shake, HP bar ease, enemy intent pulse, card draw slide-in. Respect `prefers-reduced-motion`.
   No animation library unless CSS can't do it.
