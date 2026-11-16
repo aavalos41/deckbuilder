@@ -5,19 +5,43 @@ Move finished tasks to **Done** with the date. Add new ideas to **Backlog**.
 
 ## Up next
 
-### 5. Loadout sources (Class + Patron)
+### 5a. Exhaust mechanic + exile pile
+Small, shippable on its own, needed by 5b's two chance-cards.
+- `types.ts`: add `exhaust?: boolean` to card effect defs; add an `exile: string[]` pile to combat state
+  alongside `drawPile` / `discardPile` / `hand`.
+- Engine (`combat.ts`/`run.ts`): a played card with `exhaust: true` goes to `exile` instead of `discardPile`.
+  When `drawPile` empties and reshuffles from `discardPile`, `exile` is never included. `exile` resets at
+  the start of each combat.
+- Tests: an exhaust card played once doesn't reappear for the rest of that combat; non-exhaust cards still
+  cycle normally through discard/reshuffle; exile is empty at the start of the next fight.
+
+### 5b. Loadout sources (Class + Patron)
 Two levers per run, both plain data, merged generically so a
 third lever (e.g. People) can be added later as data only. Replaces the old race + class idea.
+Needs 5a for the two chance-boost cards below (both `exhaust: true`).
 - Data (`src/data/loadouts.ts`, new): `LoadoutSource` = `id`, `kind` (`'class' | 'patron'`, extendable),
   `name`, `description`, `starterCards`, `cardPool`, `passive?` (a relic id; reuse relics, no new system).
-  Placeholder: 2 classes + 2 patrons built from existing cards. No theme names or art yet.
+  - **Warrior** (class): unchanged deck — 5× Strike, 4× Defend, 1× Focus.
+  - **Shaman** (class): starter deck — 5× Tap (cost 1, deal 4 dmg, heal 2), 4× Ward (cost 1, 5 block),
+    1× Commune (cost 0, draw 2). Pool: Mend (common, 1, heal 6); Lash (common, 1, deal 3 dmg twice, heal 2);
+    Spirit Drain (uncommon, 1, deal 5 dmg, heal 3); Cleansing Smoke (uncommon, 1, remove all own debuffs,
+    heal 2); Blood Pact (rare, 2, deal 10 dmg, heal equal to damage dealt — rare until a second Exhaust
+    user exists, same reasoning as Inflame/Catalyst).
+  - **Jaguar** (patron): passive — 10% chance to dodge an incoming attack (needs a new `dodgeChance` stat
+    and a check in the attack-resolution path, analogous to crit below). Pool: Hunt's Favor (uncommon, 1,
+    "this turn your dodge chance is 50%", `exhaust: true`); Pounce (rare, 2, deal 7 dmg twice).
+  - **Eagle** (patron): passive — 10% chance an attack crits for +50% damage (needs a new `critChance` stat
+    and a check in the attack-resolution path). Pool: Sharp Eye (uncommon, 1, "this turn your crit chance is
+    50%", `exhaust: true`); Dive (rare, 2, deal 14 dmg).
+  No art/full theme pass yet — names above are final, flavour text can follow later.
 - Engine (`run.ts`, `types.ts`, `save.ts`): `buildRunLoadout(sourceIds)` replaces `STARTER_DECK` at run start,
   merges starter cards, unions pools with a neutral pool (`REWARD_POOL`), grants passive relics. Rewards draw
   only from the merged pool. Required kinds come from config; never hardcode 'class'/'patron'. Run state
   stores chosen ids; bump save version.
 - UI (`App.tsx`): text-first run-start picker, one list per kind with a short description.
 - Tests: starter deck = class + patron cards; rewards stay inside merged pool; passive relic present at start;
-  a fixture with a third kind works with no engine change; save/load keeps sources.
+  dodge/crit checks fire at roughly the configured rate; a fixture with a third kind works with no engine
+  change; save/load keeps sources.
 
 ### 6. Branching map
 Replace the linear run with a small node map: fight, elite, rest (heal 30% or upgrade a card), shop, boss.
@@ -28,7 +52,8 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
   its own *before* adding lots of content, and rename generic terms to fit a theme.
 - **Setting and tone.** Leaning Nahua: the last night of the 52-year cycle, travel to light the New Fire
   before the tzitzimimeh descend. Codex-style art, glyph icons, bar-and-dot counters. Levers: Class
-  (e.g. Warrior, Tlacuilo) + Patron (e.g. Eagle, Jaguar). Not final; content naming waits on loadouts.
+  (Warrior, Shaman — Shaman prioritised over Tlacuilo, which felt harder to grasp) + Patron (Jaguar, Eagle).
+  Names/mechanics locked in task 5b; still no art/full theme pass.
 
 ## Backlog
 - **Animation pass (functional, CSS-first).** Card flies to enemy when played, floating damage/block numbers,
@@ -38,7 +63,6 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
   pipeline with clear licensing (own work, commissioned, or generated with rights you're happy to sell under).
   Cards keep working without art; art is an optional `image` field on card/enemy data.
 - Card upgrades (needs rest sites)
-- Exhaust keyword (card removed for the rest of combat)
 - Card removal (shop service)
 - Run history / stats screen (best floor, wins, seed)
 - Share a seed via URL (`?seed=123`)
