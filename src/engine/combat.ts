@@ -1,8 +1,8 @@
 import { CARDS } from '../data/cards';
 import { ENEMIES } from '../data/enemies';
 import { RELICS } from '../data/relics';
-import { shuffle } from './rng';
-import type { CardInstance, CardType, Combatant, Effect, RelicHook, EnemyState, Intent, RunState, StatusId, Statuses } from './types';
+import { nextRandom, shuffle } from './rng';
+import type { CardInstance, ChanceStat, CardType, Combatant, Effect, RelicHook, EnemyState, Intent, RunState, StatusId, Statuses } from './types';
 
 export const HAND_SIZE = 5;
 export const MAX_HAND = 10;
@@ -10,6 +10,7 @@ export const BASE_ENERGY = 3;
 
 export const VULNERABLE_MULT = 1.5;
 export const WEAK_MULT = 0.75;
+export const CRIT_MULT = 1.5;
 
 export function noStatuses(): Statuses {
   return { vulnerable: 0, weak: 0, poison: 0, strengthDown: 0 };
@@ -18,13 +19,14 @@ export function noStatuses(): Statuses {
 // ---------- helpers ----------
 
 /**
- * Attack damage after modifiers: strength → weak → vulnerable, rounded down once at the end.
- * Used for both player and enemy attacks, and for intent previews.
+ * Attack damage after modifiers: strength → weak → vulnerable → crit, rounded down once at the end.
+ * Used for both player and enemy attacks, and for intent previews (never crit).
  */
-export function attackDamage(base: number, attacker: Combatant, defender: Combatant): number {
+export function attackDamage(base: number, attacker: Combatant, defender: Combatant, crit = false): number {
   let dmg = base + attacker.strength;
   if (attacker.statuses.weak > 0) dmg *= WEAK_MULT;
   if (defender.statuses.vulnerable > 0) dmg *= VULNERABLE_MULT;
+  if (crit) dmg *= CRIT_MULT;
   return Math.max(0, Math.floor(dmg));
 }
 
@@ -66,6 +68,20 @@ function drawCards(run: RunState, n: number): void {
   }
 }
 
+/** The player's current chance (percent) for a stat: this-combat value or this-turn floor, whichever is higher. */
+export function playerChance(run: RunState, stat: ChanceStat): number {
+  const c = run.combat!;
+  return Math.max(c.chance[stat], c.turnChance[stat]);
+}
+
+/** Rolls a percent chance with the run's RNG. Consumes no randomness at 0%, so runs without chances are unchanged. */
+function rollChance(run: RunState, percent: number): boolean {
+  if (percent <= 0) return false;
+  const [v, next] = nextRandom(run.rngState);
+  run.rngState = next;
+  return v * 100 < percent;
+}
+
 export function currentIntent(enemy: EnemyState): Intent {
   const def = ENEMIES[enemy.defId];
   return def.pattern[enemy.patternIndex % def.pattern.length];
@@ -94,6 +110,8 @@ export function describeIntent(intent: Intent, attacker?: Combatant, defender?: 
   }
 }
 
+export const CHANCE_LABELS: Record<ChanceStat, string> = { dodge: 'Dodge', crit: 'Crit' };
+
 function checkResult(run: RunState): void {
   const c = run.combat!;
   if (c.enemy.hp <= 0) c.result = 'won';
@@ -107,9 +125,16 @@ function applyEffect(run: RunState, effect: Effect): void {
   switch (effect.type) {
     case 'damage': {
       const times = effect.times ?? 1;
+      let total = 0;
       for (let i = 0; i < times && c.enemy.hp > 0; i++) {
-        const lost = dealDamage(c.enemy, attackDamage(effect.amount, run.player, c.enemy));
-        c.log.push(`You hit for ${lost}.`);
+        const crit = rollChance(run, playerChance(run, 'crit'));
+        const lost = dealDamage(c.enemy, attackDamage(effect.amount, run.player, c.enemy, crit));
+        total += lost;
+        c.log.push(crit ? `Critical! You hit for ${lost}.` : `You hit for ${lost}.`);
+      }
+      if (effect.lifesteal && total > 0) {
+        run.player.hp = Math.min(run.player.maxHp, run.player.hp + total);
+        c.log.push(`You heal ${total}.`);
       }
       break;
     }
@@ -154,6 +179,13 @@ function applyEffect(run: RunState, effect: Effect): void {
       }
       break;
     }
+    case 'gainChance':
+      c.chance[effect.stat] += effect.amount;
+      break;
+    case 'chanceThisTurn':
+      c.turnChance[effect.stat] = Math.max(c.turnChance[effect.stat], effect.chance);
+      c.log.push(`You: ${CHANCE_LABELS[effect.stat]} chance ${effect.chance}% until your next turn.`);
+      break;
   }
 }
 
@@ -191,6 +223,8 @@ export function startCombat(prev: RunState, enemyId: string): RunState {
     hand: [],
     discardPile: [],
     exile: [],
+    chance: { dodge: 0, crit: 0 },
+    turnChance: { dodge: 0, crit: 0 },
     enemy: {
       defId: enemyId, hp: def.maxHp, maxHp: def.maxHp, block: 0, strength: 0,
       statuses: noStatuses(), patternIndex: 0,
@@ -246,6 +280,10 @@ function enemyAct(run: RunState): void {
     case 'attack': {
       const times = intent.times ?? 1;
       for (let i = 0; i < times && run.player.hp > 0; i++) {
+        if (rollChance(run, playerChance(run, 'dodge'))) {
+          c.log.push(`You dodge ${name}'s hit!`);
+          continue;
+        }
         const lost = dealDamage(run.player, attackDamage(intent.amount, e, run.player));
         c.log.push(`${name} hits you for ${lost}.`);
       }
@@ -274,7 +312,7 @@ function enemyAct(run: RunState): void {
  *   end of round: Vulnerable/Weak lose 1 stack on both sides, except stacks the enemy
  *     applied to the player this round (they skip their first tick, so "1" always lasts
  *     one turn where it matters)
- *   player turn: block expires → poison ticks → energy + draw
+ *   player turn: block and this-turn chances (Hunt's Favor, Sharp Eye) expire → poison ticks → energy + draw
  */
 export function endTurn(prev: RunState): RunState {
   const run = structuredClone(prev);
@@ -317,6 +355,7 @@ export function endTurn(prev: RunState): RunState {
   // New player turn
   c.turn++;
   p.block = 0;
+  c.turnChance = { dodge: 0, crit: 0 };
   const playerPoison = tickPoison(p);
   if (playerPoison > 0) c.log.push(`You lose ${playerPoison} to poison.`);
   checkResult(run);

@@ -23,6 +23,15 @@ export const RELICS: Record<string, RelicDef> = {
     id: 'spikedGlove', name: 'Spiked Glove', text: 'When you play an attack, deal 1 damage.',
     triggers: [{ on: 'cardPlayed', cardType: 'attack', effects: [{ type: 'damage', amount: 1 }] }],
   },
+  // ---------- loadout passives (granted by data/loadouts.ts, never offered as rewards) ----------
+  jaguarSpirit: {
+    id: 'jaguarSpirit', name: 'Jaguar', text: '10% chance to dodge each enemy hit.',
+    triggers: [{ on: 'combatStart', effects: [{ type: 'gainChance', stat: 'dodge', amount: 10 }] }],
+  },
+  eagleSpirit: {
+    id: 'eagleSpirit', name: 'Eagle', text: '10% chance for your hits to crit for +50% damage.',
+    triggers: [{ on: 'combatStart', effects: [{ type: 'gainChance', stat: 'crit', amount: 10 }] }],
+  },
 };
 
 /** Floors (0-based) after which you pick 1 of RELIC_CHOICES relics. Temporary until the map exists. */

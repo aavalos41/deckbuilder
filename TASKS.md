@@ -5,34 +5,6 @@ Move finished tasks to **Done** with the date. Add new ideas to **Backlog**.
 
 ## Up next
 
-### 5b. Loadout sources (Class + Patron)
-Two levers per run, both plain data, merged generically so a
-third lever (e.g. People) can be added later as data only. Replaces the old race + class idea.
-Uses Exhaust (5a, done) for the two chance-boost cards below (both `exhaust: true`).
-- Data (`src/data/loadouts.ts`, new): `LoadoutSource` = `id`, `kind` (`'class' | 'patron'`, extendable),
-  `name`, `description`, `starterCards`, `cardPool`, `passive?` (a relic id; reuse relics, no new system).
-  - **Warrior** (class): unchanged deck — 5× Strike, 4× Defend, 1× Focus.
-  - **Shaman** (class): starter deck — 5× Tap (cost 1, deal 4 dmg, heal 2), 4× Ward (cost 1, 5 block),
-    1× Commune (cost 0, draw 2). Pool: Mend (common, 1, heal 6); Lash (common, 1, deal 3 dmg twice, heal 2);
-    Spirit Drain (uncommon, 1, deal 5 dmg, heal 3); Cleansing Smoke (uncommon, 1, remove all own debuffs,
-    heal 2); Blood Pact (rare, 2, deal 10 dmg, heal equal to damage dealt — rare until a second Exhaust
-    user exists, same reasoning as Inflame/Catalyst).
-  - **Jaguar** (patron): passive — 10% chance to dodge an incoming attack (needs a new `dodgeChance` stat
-    and a check in the attack-resolution path, analogous to crit below). Pool: Hunt's Favor (uncommon, 1,
-    "this turn your dodge chance is 50%", `exhaust: true`); Pounce (rare, 2, deal 7 dmg twice).
-  - **Eagle** (patron): passive — 10% chance an attack crits for +50% damage (needs a new `critChance` stat
-    and a check in the attack-resolution path). Pool: Sharp Eye (uncommon, 1, "this turn your crit chance is
-    50%", `exhaust: true`); Dive (rare, 2, deal 14 dmg).
-  No art/full theme pass yet — names above are final, flavour text can follow later.
-- Engine (`run.ts`, `types.ts`, `save.ts`): `buildRunLoadout(sourceIds)` replaces `STARTER_DECK` at run start,
-  merges starter cards, unions pools with a neutral pool (`REWARD_POOL`), grants passive relics. Rewards draw
-  only from the merged pool. Required kinds come from config; never hardcode 'class'/'patron'. Run state
-  stores chosen ids; bump save version.
-- UI (`App.tsx`): text-first run-start picker, one list per kind with a short description.
-- Tests: starter deck = class + patron cards; rewards stay inside merged pool; passive relic present at start;
-  dodge/crit checks fire at roughly the configured rate; a fixture with a third kind works with no engine
-  change; save/load keeps sources.
-
 ### 6. Branching map
 Replace the linear run with a small node map: fight, elite, rest (heal 30% or upgrade a card), shop, boss.
 
@@ -46,6 +18,9 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
   Names/mechanics locked in task 5b; still no art/full theme pass.
 
 ## Backlog
+- Warrior has no class-only card pool yet (all old cards are neutral). Consider moving Strength cards
+  (Inflame, Flex, Bash, Cleave) into it so Shaman runs don't see them.
+- Show dodge/crit chance as chips when a this-turn boost is active.
 - **Animation pass (functional, CSS-first).** Card flies to enemy when played, floating damage/block numbers,
   hit shake, HP bar ease, enemy intent pulse, card draw slide-in. Respect `prefers-reduced-motion`.
   No animation library unless CSS can't do it.
@@ -61,6 +36,12 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
 - Play Store wrapper (Capacitor or TWA)
 
 ## Done
+- 2026-11-17 — Loadout sources (Class + Patron): `src/data/loadouts.ts` (Warrior, Shaman, Jaguar, Eagle),
+  `LOADOUT_KINDS` config, `buildRunLoadout` merges starter decks / pools / passive relics; run stores
+  `loadout`. Neutral `REWARD_POOL` = non-starter cards no source claims. New effects: `damage.lifesteal`,
+  `gainChance`, `chanceThisTurn` (lasts until your next turn, so dodge covers the enemy turn). Dodge/crit
+  rolled per hit, only when the chance is > 0. Passives are relics, never offered as rewards. Title-screen
+  picker. Save version 6.
 - 2026-11-17 — Exhaust + exile pile: `exhaust?: boolean` on `CardDef`; played exhaust cards go to
   `combat.exile` (never reshuffled, fresh each combat). Cards show "Exhaust.", combat shows Exile count.
   No cards use it yet (5b). Save version 5.

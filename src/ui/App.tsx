@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CARDS } from '../data/cards';
 import { ENEMIES } from '../data/enemies';
+import { DEFAULT_LOADOUT, LOADOUT_KINDS, LOADOUTS } from '../data/loadouts';
 import { RELICS } from '../data/relics';
 import { canPlay, currentIntent, describeIntent, endTurn, playCard } from '../engine/combat';
 import { newSeed } from '../engine/rng';
@@ -25,7 +26,7 @@ export default function App() {
     }
   }, [run]);
 
-  if (!run) return <Title onStart={() => setRun(newRun(newSeed()))} />;
+  if (!run) return <Title onStart={(sources) => setRun(newRun(newSeed(), sources))} />;
   if (run.phase === 'victory' || run.phase === 'defeat') {
     return <End run={run} onRestart={() => setRun(null)} />;
   }
@@ -38,12 +39,31 @@ export default function App() {
   return <Combat run={run} setRun={setRun} />;
 }
 
-function Title({ onStart }: { onStart: () => void }) {
+/** Title + run-start picker: one list per loadout kind, one source picked from each. */
+function Title({ onStart }: { onStart: (sources: string[]) => void }) {
+  // One chosen source id per kind, in LOADOUT_KINDS order.
+  const [picked, setPicked] = useState<string[]>(DEFAULT_LOADOUT);
   return (
     <main className="screen screen--center">
       <h1 className="title">Deckbuilder</h1>
       <p className="muted">Five fights. One boss. Build your deck as you go.</p>
-      <button className="btn btn--primary" onClick={onStart}>New run</button>
+      {LOADOUT_KINDS.map((kind, k) => (
+        <section key={kind.id} className="loadout" aria-label={kind.label}>
+          <h2 className="loadout__kind">{kind.label}</h2>
+          {Object.values(LOADOUTS).filter((s) => s.kind === kind.id).map((s) => (
+            <button
+              key={s.id}
+              className={`btn relic-option${picked[k] === s.id ? ' loadout__option--on' : ''}`}
+              aria-pressed={picked[k] === s.id}
+              onClick={() => setPicked(picked.map((id, i) => (i === k ? s.id : id)))}
+            >
+              <span className="relic-option__name">{s.name}</span>
+              <span className="small muted">{s.description}</span>
+            </button>
+          ))}
+        </section>
+      ))}
+      <button className="btn btn--primary" onClick={() => onStart(picked)}>Start run</button>
     </main>
   );
 }
@@ -144,7 +164,8 @@ function End({ run, onRestart }: { run: RunState; onRestart: () => void }) {
     <main className="screen screen--center">
       <h1 className="title">{won ? 'You win' : 'Defeated'}</h1>
       <p className="muted">
-        {won ? 'The Gatekeeper falls.' : `Fell on floor ${run.floor + 1}.`} Seed {run.seed}
+        {won ? 'The Gatekeeper falls.' : `Fell on floor ${run.floor + 1}.`}{' '}
+        {run.loadout.map((id) => LOADOUTS[id]?.name).join(' · ')} · Seed {run.seed}
       </p>
       <button className="btn btn--primary" onClick={onRestart}>Back to title</button>
     </main>

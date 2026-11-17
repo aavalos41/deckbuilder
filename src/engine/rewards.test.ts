@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CARDS } from '../data/cards';
 import { weightedIndex } from './rng';
+import { REWARD_POOL } from '../data/cards';
 import { rollRewards } from './run';
 
 describe('weightedIndex', () => {
@@ -20,7 +21,7 @@ describe('rollRewards', () => {
     let s = 12345;
     for (let n = 0; n < 1000; n++) {
       let offer: string[];
-      [offer, s] = rollRewards(s);
+      [offer, s] = rollRewards(s, REWARD_POOL);
       expect(offer).toHaveLength(3);
       expect(new Set(offer).size).toBe(3);
       for (const id of offer) counts[CARDS[id].rarity]++;
@@ -33,13 +34,14 @@ describe('rollRewards', () => {
   });
 
   it('is deterministic for a given seed', () => {
-    expect(rollRewards(99)).toEqual(rollRewards(99));
+    expect(rollRewards(99, REWARD_POOL)).toEqual(rollRewards(99, REWARD_POOL));
   });
 
   it('falls back when a rarity runs out', () => {
     // Asking for every reward card at once forces fallbacks; all must appear exactly once.
-    const all = Object.values(CARDS).filter((c) => c.rarity !== 'starter' && !c.id.startsWith('t_'));
-    const [offer] = rollRewards(5, all.length);
-    expect(new Set(offer)).toEqual(new Set(all.map((c) => c.id)));
+    const all = [...REWARD_POOL.common, ...REWARD_POOL.uncommon, ...REWARD_POOL.rare];
+    const [offer] = rollRewards(5, REWARD_POOL, all.length);
+    expect(offer).toHaveLength(all.length);
+    expect(new Set(offer)).toEqual(new Set(all));
   });
 });

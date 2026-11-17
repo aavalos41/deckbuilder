@@ -1,4 +1,5 @@
-import { RARITY_WEIGHTS, REWARD_POOL, STARTER_DECK, type RewardRarity } from '../data/cards';
+import { CARDS, RARITY_WEIGHTS, REWARD_POOL, type RewardPool, type RewardRarity } from '../data/cards';
+import { DEFAULT_LOADOUT, LOADOUT_KINDS, LOADOUTS } from '../data/loadouts';
 import { BOSS_ID, ENCOUNTER_TIERS } from '../data/enemies';
 import { RELIC_CHOICES, RELIC_FLOORS, RELICS } from '../data/relics';
 import { fireRelics, noStatuses, startCombat } from './combat';
@@ -8,7 +9,53 @@ import type { RunState } from './types';
 export const PLAYER_MAX_HP = 70;
 export const REWARD_CHOICES = 3;
 
-export function newRun(seed: number): RunState {
+export interface RunLoadout {
+  /** Starter deck card ids: each source's starter cards, in source order. */
+  deck: string[];
+  /** Reward pool: neutral REWARD_POOL ∪ each source's cardPool, grouped by rarity. */
+  pool: RewardPool;
+  /** Passive relic ids granted at run start. */
+  relics: string[];
+}
+
+/**
+ * Merges the chosen loadout sources. Needs exactly one source per kind in `kinds`
+ * (defaults to LOADOUT_KINDS); throws otherwise, since that's a bug, not a game state.
+ */
+export function buildRunLoadout(
+  sourceIds: readonly string[],
+  kinds: readonly string[] = LOADOUT_KINDS.map((k) => k.id),
+): RunLoadout {
+  const sources = sourceIds.map((id) => {
+    const s = LOADOUTS[id];
+    if (!s) throw new Error(`Unknown loadout source: ${id}`);
+    return s;
+  });
+  for (const kind of kinds) {
+    const n = sources.filter((s) => s.kind === kind).length;
+    if (n !== 1) throw new Error(`Loadout needs exactly one '${kind}', got ${n}`);
+  }
+  if (sources.length !== kinds.length) throw new Error(`Loadout has sources of unknown kinds: ${sourceIds.join(', ')}`);
+
+  const pool: RewardPool = { common: [...REWARD_POOL.common], uncommon: [...REWARD_POOL.uncommon], rare: [...REWARD_POOL.rare] };
+  for (const s of sources) {
+    for (const id of s.cardPool) {
+      const rarity = CARDS[id].rarity;
+      if (rarity !== 'starter' && !pool[rarity].includes(id)) pool[rarity].push(id);
+    }
+  }
+  return {
+    deck: sources.flatMap((s) => s.starterCards),
+    pool,
+    relics: sources.flatMap((s) => (s.passive ? [s.passive] : [])),
+  };
+}
+
+/** Relic ids that are loadout passives; these are never offered as relic rewards. */
+const PASSIVE_RELICS = new Set(Object.values(LOADOUTS).flatMap((l) => (l.passive ? [l.passive] : [])));
+
+export function newRun(seed: number, sourceIds: readonly string[] = DEFAULT_LOADOUT): RunState {
+  const loadout = buildRunLoadout(sourceIds);
   let rng = seed;
   const encounters: string[] = [];
   for (const tier of ENCOUNTER_TIERS) {
@@ -18,10 +65,11 @@ export function newRun(seed: number): RunState {
   }
   encounters.push(BOSS_ID);
 
-  const deck = STARTER_DECK.map((defId, i) => ({ uid: `c${i}`, defId }));
+  const deck = loadout.deck.map((defId, i) => ({ uid: `c${i}`, defId }));
   const run: RunState = {
-    version: 5,
+    version: 6,
     seed,
+    loadout: [...sourceIds],
     rngState: rng,
     floor: 0,
     encounters,
@@ -31,7 +79,7 @@ export function newRun(seed: number): RunState {
     phase: 'combat',
     combat: null,
     rewardOptions: [],
-    relics: [],
+    relics: [...loadout.relics],
     relicOptions: [],
   };
   return startCombat(run, encounters[0]);
@@ -41,12 +89,12 @@ export function newRun(seed: number): RunState {
  * Rolls `count` distinct reward cards. Each slot rolls a rarity by RARITY_WEIGHTS, then a random card
  * of that rarity not already offered. If that rarity is used up, falls back to the most common one left.
  */
-export function rollRewards(seed: number, count = REWARD_CHOICES): [string[], number] {
+export function rollRewards(seed: number, pool: RewardPool, count = REWARD_CHOICES): [string[], number] {
   let rng = seed;
   const rarities = (Object.keys(RARITY_WEIGHTS) as RewardRarity[])
     .sort((a, b) => RARITY_WEIGHTS[b] - RARITY_WEIGHTS[a]);
   const left: Record<RewardRarity, string[]> = {
-    common: [...REWARD_POOL.common], uncommon: [...REWARD_POOL.uncommon], rare: [...REWARD_POOL.rare],
+    common: [...pool.common], uncommon: [...pool.uncommon], rare: [...pool.rare],
   };
   const picks: string[] = [];
   while (picks.length < count) {
@@ -76,10 +124,10 @@ export function resolveCombat(prev: RunState): RunState {
     run.phase = 'victory';
     return run;
   }
-  [run.rewardOptions, run.rngState] = rollRewards(run.rngState);
+  [run.rewardOptions, run.rngState] = rollRewards(run.rngState, buildRunLoadout(run.loadout).pool);
   run.phase = 'reward';
   if (RELIC_FLOORS.includes(run.floor)) {
-    const unowned = Object.keys(RELICS).filter((id) => !run.relics.includes(id));
+    const unowned = Object.keys(RELICS).filter((id) => !run.relics.includes(id) && !PASSIVE_RELICS.has(id));
     if (unowned.length >= RELIC_CHOICES) {
       const [shuffled, rng] = shuffle(unowned, run.rngState);
       run.rngState = rng;

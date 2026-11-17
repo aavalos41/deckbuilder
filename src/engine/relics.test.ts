@@ -77,14 +77,26 @@ describe('relic floors', () => {
     let run = newRun(3);
     run.floor = 1;
     run = win(run);
+    const passives = [...run.relics];
     const pick = run.relicOptions[1];
     run = chooseRelic(run, pick);
-    expect(run.relics).toEqual([pick]);
+    expect(run.relics).toEqual([...passives, pick]);
     expect(run.phase).toBe('reward');
     expect(run.rewardOptions).toHaveLength(3);
     run = chooseReward(run, null);
     expect(run.phase).toBe('combat');
-    expect(run.relics).toEqual([pick]);
+    expect(run.relics).toEqual([...passives, pick]);
+  });
+
+  it('never offers loadout passives, even to a run without them', () => {
+    for (let seed = 0; seed < 50; seed++) {
+      const run = newRun(seed);
+      run.relics = [];
+      run.floor = 1;
+      const offered = win(run).relicOptions;
+      expect(offered).not.toContain('jaguarSpirit');
+      expect(offered).not.toContain('eagleSpirit');
+    }
   });
 
   it('ignores a relic that was not offered', () => {

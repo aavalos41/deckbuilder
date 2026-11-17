@@ -1,4 +1,5 @@
 import type { CardDef, Rarity } from '../engine/types';
+import { LOADOUTS } from './loadouts';
 
 // Add new cards here. Effects are data, interpreted by engine/effects.ts.
 export const CARDS: Record<string, CardDef> = {
@@ -90,21 +91,80 @@ export const CARDS: Record<string, CardDef> = {
     id: 'cleave', name: 'Cleave', cost: 3, type: 'attack', rarity: 'rare',
     text: 'Deal 26 damage.', effects: [{ type: 'damage', amount: 26 }],
   },
+  // ---------- Shaman (class) ----------
+  tap: {
+    id: 'tap', name: 'Tap', cost: 1, type: 'attack', rarity: 'starter',
+    text: 'Deal 4 damage. Heal 2.', effects: [{ type: 'damage', amount: 4 }, { type: 'heal', amount: 2 }],
+  },
+  ward: {
+    id: 'ward', name: 'Ward', cost: 1, type: 'skill', rarity: 'starter',
+    text: 'Gain 5 block.', effects: [{ type: 'block', amount: 5 }],
+  },
+  commune: {
+    id: 'commune', name: 'Commune', cost: 0, type: 'skill', rarity: 'starter',
+    text: 'Draw 2 cards.', effects: [{ type: 'draw', amount: 2 }],
+  },
+  mend: {
+    id: 'mend', name: 'Mend', cost: 1, type: 'skill', rarity: 'common',
+    text: 'Heal 6.', effects: [{ type: 'heal', amount: 6 }],
+  },
+  lash: {
+    id: 'lash', name: 'Lash', cost: 1, type: 'attack', rarity: 'common',
+    text: 'Deal 3 damage twice. Heal 2.',
+    effects: [{ type: 'damage', amount: 3, times: 2 }, { type: 'heal', amount: 2 }],
+  },
+  spiritDrain: {
+    id: 'spiritDrain', name: 'Spirit Drain', cost: 1, type: 'attack', rarity: 'uncommon',
+    text: 'Deal 5 damage. Heal 3.', effects: [{ type: 'damage', amount: 5 }, { type: 'heal', amount: 3 }],
+  },
+  cleansingSmoke: {
+    id: 'cleansingSmoke', name: 'Cleansing Smoke', cost: 1, type: 'skill', rarity: 'uncommon',
+    text: 'Remove your Vulnerable, Weak and Poison. Heal 2.',
+    effects: [
+      { type: 'removeStatus', status: 'vulnerable', target: 'self' },
+      { type: 'removeStatus', status: 'weak', target: 'self' },
+      { type: 'removeStatus', status: 'poison', target: 'self' },
+      { type: 'heal', amount: 2 },
+    ],
+  },
+  // Rare until a second Exhaust user exists (same reasoning as Inflame/Catalyst).
+  bloodPact: {
+    id: 'bloodPact', name: 'Blood Pact', cost: 2, type: 'attack', rarity: 'rare',
+    text: 'Deal 10 damage. Heal HP equal to the damage dealt.',
+    effects: [{ type: 'damage', amount: 10, lifesteal: true }],
+  },
+  // ---------- Jaguar (patron) ----------
+  huntsFavor: {
+    id: 'huntsFavor', name: "Hunt's Favor", cost: 1, type: 'skill', rarity: 'uncommon',
+    text: 'Until your next turn, 50% chance to dodge each enemy hit.',
+    effects: [{ type: 'chanceThisTurn', stat: 'dodge', chance: 50 }], exhaust: true,
+  },
+  pounce: {
+    id: 'pounce', name: 'Pounce', cost: 2, type: 'attack', rarity: 'rare',
+    text: 'Deal 7 damage twice.', effects: [{ type: 'damage', amount: 7, times: 2 }],
+  },
+  // ---------- Eagle (patron) ----------
+  sharpEye: {
+    id: 'sharpEye', name: 'Sharp Eye', cost: 1, type: 'skill', rarity: 'uncommon',
+    text: 'This turn, your hits have a 50% chance to crit (+50% damage).',
+    effects: [{ type: 'chanceThisTurn', stat: 'crit', chance: 50 }], exhaust: true,
+  },
+  dive: {
+    id: 'dive', name: 'Dive', cost: 2, type: 'attack', rarity: 'rare',
+    text: 'Deal 14 damage.', effects: [{ type: 'damage', amount: 14 }],
+  },
 };
-
-export const STARTER_DECK: string[] = [
-  'strike', 'strike', 'strike', 'strike', 'strike',
-  'defend', 'defend', 'defend', 'defend',
-  'focus',
-];
 
 export type RewardRarity = Exclude<Rarity, 'starter'>;
 
 /** Chance of each rarity per reward slot. Relative weights, tune freely. */
 export const RARITY_WEIGHTS: Record<RewardRarity, number> = { common: 60, uncommon: 30, rare: 10 };
 
-/** Reward-eligible card ids, grouped by rarity. */
-export const REWARD_POOL: Record<RewardRarity, string[]> = { common: [], uncommon: [], rare: [] };
+export type RewardPool = Record<RewardRarity, string[]>;
+
+/** Neutral reward cards (any loadout), grouped by rarity: every non-starter card no loadout source claims. */
+export const REWARD_POOL: RewardPool = { common: [], uncommon: [], rare: [] };
+const claimed = new Set(Object.values(LOADOUTS).flatMap((l) => l.cardPool));
 for (const c of Object.values(CARDS)) {
-  if (c.rarity !== 'starter') REWARD_POOL[c.rarity].push(c.id);
+  if (c.rarity !== 'starter' && !claimed.has(c.id)) REWARD_POOL[c.rarity].push(c.id);
 }
