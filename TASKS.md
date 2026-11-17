@@ -5,20 +5,10 @@ Move finished tasks to **Done** with the date. Add new ideas to **Backlog**.
 
 ## Up next
 
-### 5a. Exhaust mechanic + exile pile
-Small, shippable on its own, needed by 5b's two chance-cards.
-- `types.ts`: add `exhaust?: boolean` to card effect defs; add an `exile: string[]` pile to combat state
-  alongside `drawPile` / `discardPile` / `hand`.
-- Engine (`combat.ts`/`run.ts`): a played card with `exhaust: true` goes to `exile` instead of `discardPile`.
-  When `drawPile` empties and reshuffles from `discardPile`, `exile` is never included. `exile` resets at
-  the start of each combat.
-- Tests: an exhaust card played once doesn't reappear for the rest of that combat; non-exhaust cards still
-  cycle normally through discard/reshuffle; exile is empty at the start of the next fight.
-
 ### 5b. Loadout sources (Class + Patron)
 Two levers per run, both plain data, merged generically so a
 third lever (e.g. People) can be added later as data only. Replaces the old race + class idea.
-Needs 5a for the two chance-boost cards below (both `exhaust: true`).
+Uses Exhaust (5a, done) for the two chance-boost cards below (both `exhaust: true`).
 - Data (`src/data/loadouts.ts`, new): `LoadoutSource` = `id`, `kind` (`'class' | 'patron'`, extendable),
   `name`, `description`, `starterCards`, `cardPool`, `passive?` (a relic id; reuse relics, no new system).
   - **Warrior** (class): unchanged deck — 5× Strike, 4× Defend, 1× Focus.
@@ -71,6 +61,9 @@ Replace the linear run with a small node map: fight, elite, rest (heal 30% or up
 - Play Store wrapper (Capacitor or TWA)
 
 ## Done
+- 2026-11-17 — Exhaust + exile pile: `exhaust?: boolean` on `CardDef`; played exhaust cards go to
+  `combat.exile` (never reshuffled, fresh each combat). Cards show "Exhaust.", combat shows Exile count.
+  No cards use it yet (5b). Save version 5.
 - 2026-11-02 — Relics: data in `src/data/relics.ts` (Whetstone, Iron Ring, Lantern, Ember Heart, Spiked Glove),
   hooks combatStart / turnStart / cardPlayed / combatEnd via `fireRelics`. Pick 1 of 2 after floors 1 and 3
   (`RELIC_FLOORS`), relic chips under player HP. Save version 4.

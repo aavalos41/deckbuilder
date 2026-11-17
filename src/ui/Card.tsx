@@ -12,12 +12,15 @@ export function Card({ def, playable = true, onClick }: Props) {
       className={`card card--${def.type} ${playable ? '' : 'card--disabled'}`}
       onClick={onClick}
       disabled={!playable}
-      aria-label={`${def.name}, costs ${def.cost}. ${def.text}`}
+      aria-label={`${def.name}, costs ${def.cost}. ${def.text}${def.exhaust ? ' Exhaust.' : ''}`}
     >
       <span className="card__cost">{def.cost}</span>
       <span className="card__name">{def.name}</span>
       <span className="card__type">{def.type}</span>
-      <span className="card__text">{def.text}</span>
+      <span className="card__text">
+        {def.text}
+        {def.exhaust && <> <strong>Exhaust.</strong></>}
+      </span>
     </button>
   );
 }

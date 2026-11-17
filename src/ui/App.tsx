@@ -80,7 +80,8 @@ function Combat({ run, setRun }: { run: RunState; setRun: (r: RunState) => void 
       <section className="player">
         <div className="player__row">
           <span className="energy" aria-label={`${c.energy} energy`}>⚡ {c.energy}/{c.maxEnergy}</span>
-          <span className="muted small">Draw {c.drawPile.length} · Discard {c.discardPile.length}</span>
+          <span className="muted small">Draw {c.drawPile.length} · Discard {c.discardPile.length}
+            {c.exile.length > 0 && <> · Exile {c.exile.length}</>}</span>
         </div>
         <HpBar hp={run.player.hp} maxHp={run.player.maxHp} block={run.player.block} />
         <Statuses who={run.player} />

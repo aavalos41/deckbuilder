@@ -190,6 +190,7 @@ export function startCombat(prev: RunState, enemyId: string): RunState {
     drawPile,
     hand: [],
     discardPile: [],
+    exile: [],
     enemy: {
       defId: enemyId, hp: def.maxHp, maxHp: def.maxHp, block: 0, strength: 0,
       statuses: noStatuses(), patternIndex: 0,
@@ -226,7 +227,12 @@ export function playCard(prev: RunState, uid: string): RunState {
     if (c.enemy.hp <= 0) break;
   }
   fireRelics(run, 'cardPlayed', def.type);
-  c.discardPile.push(card);
+  if (def.exhaust) {
+    c.exile.push(card);
+    c.log.push(`${def.name} is exhausted.`);
+  } else {
+    c.discardPile.push(card);
+  }
   checkResult(run);
   return run;
 }

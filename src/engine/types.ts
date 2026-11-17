@@ -29,6 +29,8 @@ export interface CardDef {
   rarity: Rarity;
   text: string;
   effects: Effect[];
+  /** Exhaust: when played, goes to the exile pile for the rest of this combat instead of discard. */
+  exhaust?: boolean;
 }
 
 /** A card instance in a deck. `uid` is unique per copy so duplicates can be tracked. */
@@ -88,6 +90,8 @@ export interface CombatState {
   drawPile: CardInstance[];
   hand: CardInstance[];
   discardPile: CardInstance[];
+  /** Exhausted cards. Never reshuffled; empty at the start of each combat. */
+  exile: CardInstance[];
   enemy: EnemyState;
   log: string[];
   result: 'ongoing' | 'won' | 'lost';
@@ -96,7 +100,7 @@ export interface CombatState {
 export type RunPhase = 'combat' | 'relic' | 'reward' | 'victory' | 'defeat';
 
 export interface RunState {
-  version: 4;
+  version: 5;
   seed: number;
   rngState: number;
   floor: number; // 0-based index into the run's encounter list
